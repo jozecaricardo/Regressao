@@ -1,0 +1,36 @@
+##correlação e permutação para beta=b
+#ATENÇÃO: FAZER AS VARIÁVEIS COM LOG10!!!!
+anaB.modif<-function(y,x,bet,p){ ##p=número de permutações, bet=inclinação de interesse, n=tamanho da amostra
+  n<-length(y)
+  est<-matrix(nrow=n,ncol=2)
+  est[,2]<-y-(bet*x)
+  est[,1]<-y+(bet*x)
+  par(mfrow=c(1,2))
+  plot(est,main='gráfico de diagnóstico',xlab='Fitted values',ylab='eixo residual',ylim=c(0,max(est[,2])))
+  abline(h=0,col='red')
+  xmed<-mean(est[,1],na.rm=T)
+  ymed<-mean(est[,2],na.rm=T)
+  xy<-(est[,1]-xmed)*(est[,2]-ymed)
+  sumq.xy<-sum(xy,na.rm=T)
+  sqx<-sum(((est[,1]-xmed)^2),na.rm=T)
+  sqy<-sum(((est[,2]-ymed)^2),na.rm=T)
+  erre<-sumq.xy/sqrt(sqx*sqy)
+  erreq<-erre^2
+  print('Testing for isometry...')
+  temp<-vector(length=p)
+  z<-matrix(nrow=n,ncol=1)
+      for(i in 1:p){
+    z[,i-(i-1)]<-cbind(sample(est[,2],rep=F))
+  ymed.si<-mean(z,na.rm=T)
+  xy.si<-(est[,1]-xmed)*(z-ymed)
+  sumq.si<-sum(xy.si,na.rm=T)
+  sqy.si<-sum(((z-ymed)^2),na.rm=T)
+  erre.si<-sumq.si/sqrt(sqx*sqy.si)
+    temp[i]<-(erre.si)^2
+    }
+  hist(temp,col='yellow',xlim=c(min(temp),max(1)))
+  abline(v=erreq,lty=1,col='red')
+  simul<-sum(ifelse(temp>=erreq,1,0))
+  p.val<-simul/p
+  return(data.frame(R2=erreq,p.val=p.val,H0=paste('Resíduos, quando b=1, não são correlacionados')))
+}
