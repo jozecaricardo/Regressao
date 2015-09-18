@@ -1,0 +1,50 @@
+##testes de permutação e bootstrap para verificar se uma inclinação é igual a um valor, sem passar pela origem
+
+##correlação e bootstrap para beta
+slopeB.modif<-function(y,x,p){##p=número de permutações, p=número de remostragens
+  library('smatr')
+  t.sma<-sma(y~x,met='SMA')
+  print(summary(t.sma))
+  n<-length(residuals(t.sma))
+  est<-matrix(nrow=n,ncol=2)
+  est[,2]<-residuals(t.sma)
+  est[,1]<-fitted(t.sma)
+  par(mfrow=c(1,2))
+  plot(est,main='gráfico de diagnóstico',xlab='Fitted values',ylab='eixo residual')
+  abline(h=0,col='red')
+  uns<-rep(1,length=dim(est)[1])
+  X.linha<-cbind(uns,est[,1])
+  YY<-t(est[,2])%*%est[,2]
+  XX<-t(X.linha)%*%X.linha
+  XY<-t(X.linha)%*%est[,2]
+  
+  xx<-XX[2,2]-XX[1,2]^2/dim(est)[1] #somatório de X2
+  xy<-XY[2,1]-(XX[1,2]%*%XY[1,1])/dim(est)[1]
+  yy<-YY-XY[1,1]^2/dim(est)[1]
+  TSS<-yy
+  SQreg<-xy^2/xx
+  res<-TSS-SQreg
+  
+  erreq<-as.numeric(SQreg/TSS) #Fator de determinação observado
+    
+  #print(erreq)
+  temp<-vector(length=p)
+  z<-matrix(nr=n,nc=1)
+      for(i in 1:p){
+        z[,i-(i-1)]<-cbind(sample(est[,2],replace=T))
+        YY.temp<-t(z)%*%z
+        XY.temp<-t(X.linha)%*%z
+        xy.temp<-XY.temp[2,1]-(XX[1,2]%*%XY.temp[1,1])/dim(est)[1]
+        yy.temp<-YY.temp-XY.temp[1,1]^2/dim(est)[1]
+        TSS.temp<-yy.temp
+        SQreg.temp<-xy.temp^2/xx
+        res<-TSS.temp-SQreg.temp
+        temp[i]<-SQreg.temp/TSS.temp
+      }
+  #print(temp)
+  hist(temp,col='yellow',xlim=c(min(temp),max(temp+0.1)))
+  abline(v=erreq,lty=1,col='red')
+  simul<-sum(ifelse(temp>=erreq,1,0))
+  p.val<-simul/p
+  return(data.frame(R2=erreq,p.val=p.val,H0=paste('Resíduos não são correlacionados')))
+}
